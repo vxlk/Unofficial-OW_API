@@ -54,12 +54,13 @@ static std::string BATTLETAG = "ZerG-11720";		///TEMP ASSIGNMENT
 #define CURL_LIB_LOCATION "curl/libcurl-vc14-x86-release-static-ipv6-sspi-winssl/lib/libcurl_a"
 #pragma comment(lib, CURL_LIB_LOCATION)
 
-typedef std::pair<std::string, std::string> HeroHexID;
-typedef std::pair<std::string, int>			StatTable;
+//typedef std::pair<std::string, std::string> HeroHexID;
+//typedef std::pair<std::string, int>			StatTable;
 
 //may not contain every hero if not every hero is played during a comp season for at least 1 second
 //only can scrape heroes played
-HeroHexID* heroId = new HeroHexID[NUM_HEROES + 1]; //+1 for the all_heroes category
+DoubleString* heroId = new DoubleString[NUM_HEROES + 1]; //+1 for the all_heroes category
+std::vector<std::pair<DoubleString, StatTable> > statTable;
 
 static const std::string heroList[NUM_HEROES] = {
 	"Doomfist"  , "Genji"  , "McCree"     ,
@@ -223,7 +224,7 @@ void getHeroStats(const std::string& buffer) {
 		if (heroId[index].first == "") break;
 
 		int startParse = buffer.find(("data-category-id=\"" + heroId[index].second + "\""));
-		int endParse = buffer.find("data-group-id=\"stats\"", startParse+1);
+		int endParse = buffer.find("data-group-id=\"stats\"", startParse + 1);
 		int test = buffer.size();
 		if (startParse == buffer.npos) {
 			std::cerr << "Hero Hex ID loaded incorrectly\n";
@@ -231,14 +232,15 @@ void getHeroStats(const std::string& buffer) {
 		}
 
 		if (endParse == buffer.npos) {
-			std::cerr << "ending parse\n";
 			break; //you are done
 		}
 
 		start = startParse;
 		//if find class="stat-title"> -> read until < and get name Average
-		std::vector<StatTable> statTable;
+		std::string currentCategory;
 		std::string category;
+		std::string statName;
+		std::string statNum;
 		std::string subString;
 		int loopIndex = startParse;
 		int subStringIndex = 0;
@@ -260,38 +262,93 @@ void getHeroStats(const std::string& buffer) {
 				category.erase(std::remove(category.begin(), category.end(), '>'), category.end());
 				category.erase(std::remove(category.begin(), category.end(), '\"'), category.end());
 				//find a match
-				for (int i = 0; i < NUM_CATEGORIES; i++) 
+				for (int i = 0; i < NUM_CATEGORIES; i++)
 					if (statCategories[i] == category) categoryType = i;
-				
+
 				if (categoryType == -1) std::cerr << "Found a category type that was not in dataBase.." << category << "\n";
+
+				//			matchCategoryToHero(categoryType, heroId[index].first);
+							//skip the post increment
 				
-	//			matchCategoryToHero(categoryType, heroId[index].first);
-				//skip the post increment
-				std::cout << category << " " << heroId[index].first << "\n";
+				currentCategory = category;
 				category.clear();
 				subString.clear();
 				continue;
 			}
 			++subStringIndex;
 			++loopIndex;
+
+			//get stats\
+			if find data-category-id=\ in string switch heroes
+
+			//go thru each hero sample and just find these
+			//<td> name </td> <td> # </td>
+
+			///pseudocode for stat vector generation
+			/*
+			if u find a <td> read until </tr> or </td>
+			name then stat #
+
+			if <td> ends in </tr>
+			remove all data, reset looking field back to name
+
+			if <td> ends in </td> get the name
+			then read until the next </td> and get the #
+			*/
+
+			///FIND STATS
+			if (subString.find("<td>") != subString.npos) {
+				subString.clear();
+				while (statName.find("</td>") == statName.npos) {
+					if (statName.find("</tr>") != statName.npos) {
+						//abort
+						subString.clear();
+						statName.clear();
+						break;
+					}
+					statName += buffer[loopIndex];
+					++loopIndex;
+				}
+				
+				/*
+				//clean the string
+				statName.erase(std::remove(statName.begin(), statName.end(), '<'), statName.end());
+				statName.erase(std::remove(statName.begin(), statName.end(), '>'), statName.end());
+				statName.erase(std::remove(statName.begin(), statName.end(), '/"'), statName.end());
+				*/
+
+				//a name was found, now find the stat value
+				if (statName != "") {
+					while (subString.find("</td>") == subString.npos) {
+						subString += buffer[loopIndex];
+						statNum += buffer[loopIndex];
+						++loopIndex;
+					}
+
+					subString.clear();
+
+					//this assumes no spaces
+					statName.erase(statName.find("</td>"), statName.find("</td>") + 5);
+					statNum.erase(statNum.find("</td>"), statNum.find("</td>") + 5);
+					statNum.erase(statNum.find("<td>"), statNum.find("<td>") + 4);
+
+					if (statNum.find('%') != statNum.npos)
+						statName.erase(std::remove(statName.begin(), statName.end(), '%'), statName.end());
+
+					///TESTING
+					//if (heroId[index].first == "Widowmaker")
+					//std::cout << statName << " " << statNum << "\n";
+					
+					//stat table ->                                    heroName,        stat category                 stat Name, stat Value
+					statTable.push_back(std::make_pair(std::make_pair(heroId[index].first, currentCategory) , std::make_pair(statName, stoi(statNum))));
+
+					//clear for next run
+					statName.clear();
+					statNum.clear();
+				}
+
+			}
 		}
-		//get stats
-		//if find data-category-id=\ in string switch heroes
-
-		//go thru each hero sample and just find these
-		//<td> name </td> <td> # </td>
-		
-		///pseudocode for stat vector generation
-		/*
-		if u find a <td> read until </tr> or </td>
-		name then stat #
-
-		if <td> ends in </tr>
-		remove all data, reset looking field back to name
-
-		if <td> ends in </td> get the name
-		then read until the next </td> and get the #
-		*/
 	}
 }
 
@@ -364,12 +421,18 @@ int main(void)
 	std::ofstream out;
 	out.open("yeya.txt");
 
+	
+	for (int i = 0; i < statTable.size(); ++i) {
+		std::cout << statTable[i].first.first << " " << statTable[i].first.second << " " << statTable[i].second.first << " " << statTable[i].second.second << "\n";
+	}
 
+	/*
 		//debug
 		for (int i = 0; i < NUM_HEROES + 1; i++) {
 			std::cout << "data-category-id=\"" + heroId[i].second + "\"" << "\n";
 			std::cout << heroId[i].first << " " << heroId[i].second << "\n";
 		}
+		*/
 	int x;
 	std::cin >> x;
 
