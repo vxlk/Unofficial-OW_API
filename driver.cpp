@@ -218,13 +218,13 @@ void getHeroStats(const std::string& buffer) {
 	//int start = buffer.find("value=\"0x02E00000FFFFFFFF\"");
 	int start = 0;
 	//start @ 1 to skip ALL HEROES
-	for (int index = 0; index < NUM_HEROES + 1; ++index) {
+	for (int index = 1; index < NUM_HEROES + 1; ++index) {
 		//signals the end of the list -some players don't have play time on every hero, so will not have a stat record for every hero-
 		if (heroId[index].first == "") break;
 
 		int startParse = buffer.find(("data-category-id=\"" + heroId[index].second + "\""));
-		int endParse = buffer.find(("data-group-id=\"stats\"", startParse+1));
-										
+		int endParse = buffer.find("data-group-id=\"stats\"", startParse+1);
+		int test = buffer.size();
 		if (startParse == buffer.npos) {
 			std::cerr << "Hero Hex ID loaded incorrectly\n";
 			break;
@@ -280,6 +280,18 @@ void getHeroStats(const std::string& buffer) {
 
 		//go thru each hero sample and just find these
 		//<td> name </td> <td> # </td>
+		
+		///pseudocode for stat vector generation
+		/*
+		if u find a <td> read until </tr> or </td>
+		name then stat #
+
+		if <td> ends in </tr>
+		remove all data, reset looking field back to name
+
+		if <td> ends in </td> get the name
+		then read until the next </td> and get the #
+		*/
 	}
 }
 
@@ -312,8 +324,8 @@ void standardReadFromString() {
 		*/
 
 		///TESTING
-		//std::ofstream out;
-		//out.open("yeye.txt");
+		std::ofstream out;
+		out.open("yeye.txt");
 
 		
 		///SHORTEN THE BUFFER TO ONLY COMP STATS
@@ -338,8 +350,8 @@ void standardReadFromString() {
 		getHeroStats(str);
 
 		///TESTING
-		//std::replace(str.begin(), str.end(), 'Í', '/');
-		//out << str << std::endl;
+		std::replace(str.begin(), str.end(), 'Í', '/');
+		out << str << std::endl;
 		
 
 	}
@@ -352,11 +364,12 @@ int main(void)
 	std::ofstream out;
 	out.open("yeya.txt");
 
-	//debug
-	for (int i = 0; i < NUM_HEROES+1; i++)
-		
-		out << heroId[i].first << " " << heroId[i].second << "\n";
 
+		//debug
+		for (int i = 0; i < NUM_HEROES + 1; i++) {
+			std::cout << "data-category-id=\"" + heroId[i].second + "\"" << "\n";
+			std::cout << heroId[i].first << " " << heroId[i].second << "\n";
+		}
 	int x;
 	std::cin >> x;
 
