@@ -5,6 +5,9 @@
 /*nifty c++ trick to turn a var name into a string*/
 #define STRINGIFY(name) stringify(#name), (name))
 
+typedef std::pair<std::string, std::string> DoubleString;
+typedef std::pair<std::string, int>			StatTable;
+
 ///TODO NAMESPACE ISSUES;;;;;
 
 //namespace heroStats {
@@ -184,6 +187,7 @@
 
 		/*the only way to change stats*/
 		virtual void updateStats() {}
+		void updateBaseStats();
 	};
 
 	class widowStats : public heroStats {
