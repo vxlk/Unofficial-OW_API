@@ -4,10 +4,58 @@
 
 /*nifty c++ trick to turn a var name into a string*/
 #define STRINGIFY(name) stringify(#name), (name))
-
+#define NUM_CATEGORIES 12
+#define NUM_HEROES 26
+#define BUFFER_SIZE 256
 typedef std::pair<std::string, std::string> DoubleString;
 typedef std::pair<std::string, int>			StatTable;
+std::vector<std::pair<DoubleString, StatTable> > statTable;
+DoubleString* heroId = new DoubleString[NUM_HEROES + 1]; //+1 for the all_heroes category
+static const std::string heroList[NUM_HEROES] = {
+	"Doomfist"  , "Genji"  , "McCree"     ,
+	"Pharah"    , "Reaper" , "Soldier: 76",
+	"Sombra"    , "Tracer" , "Hanzo"      ,
+	"Junkrat"   , "Mei"    , "TorbjÃ¶rn"  , //this is how torb's name is read in unicode i guess..
+	"Widowmaker", "D.Va"   , "Orisa"      ,
+	"Reinhardt" , "Roadhog", "Winston"    ,
+	"Zarya"     , "Ana"	   , "LÃºcio"     , //lucio ...
+	"Mercy"		, "Moira"  , "Symmetra"   ,
+	"Zenyatta"
+};
 
+enum stringEnum {
+	Doomfist,Genji,McCree,
+	Pharah,Reaper,Soldier76,
+	Sombra,Tracer,Hanzo,
+	Junkrat,Mei,Torbjorn,
+	Widowmaker,DVa,Orisa,
+	Reinhardt,Roadhog,Winston,
+	Zarya,Ana,Lucio,//lucio...
+	Mercy,Moira,Symmetra,
+	Zenyatta, LAST = -1
+};
+
+static const enum stringEnum stringMap[] = {
+	Doomfist,Genji,McCree,
+	Pharah,Reaper,Soldier76,
+	Sombra,Tracer,Hanzo,
+	Junkrat,Mei,Torbjorn,
+	Widowmaker,DVa,Orisa,
+	Reinhardt,Roadhog,Winston,
+	Zarya,Ana,Lucio,//lucio...
+	Mercy,Moira,Symmetra,
+	Zenyatta, LAST
+};
+
+std::vector < std::pair<std::string, stringEnum> > heroMap;
+
+///MUST BE CALLED AS PART OF INIT PROCESS
+void buildHeroMap() {
+	for (int i = 0; stringMap[i] != LAST; i++) {
+		heroMap[i].first = heroList[i];
+		heroMap[i].second = stringMap[i];
+	}
+}
 ///TODO NAMESPACE ISSUES;;;;;
 
 //namespace heroStats {
@@ -67,6 +115,7 @@ typedef std::pair<std::string, int>			StatTable;
 
 		//contains this hero's stats shared by all heroes
 	protected:
+
 		//accessory
 		std::vector<std::pair<std::string, int> > stringifiedStats;
 
@@ -74,54 +123,54 @@ typedef std::pair<std::string, int>			StatTable;
 		healer* healerStats = nullptr;
 		tank* tankStats = nullptr;
 
-			//match
-			int medalBronze;
-			int medalSilver;
-			int medalGold;
-			int noMedal;
-			int cards;
+			struct match {
+				int medalBronze;
+				int medalSilver;
+				int medalGold;
+				int noMedal;
+				int cards;
+			};
 
-			//game
-			int timePlayed;
-			int gamesWon;
+			struct game {
+				int timePlayed;
+				int gamesWon;
+				int gamesPlayed;
+				int gamesTied;
+				int gamesLost;
+				int gameWinPercent;
+			};
 
-			//combat
-			int heroDamageDone;
-			int barrierDamageDone;
-			int deaths;
-			int objectiveTime;
-			int objectiveKills;
-			int eliminations;
-			int timeOnFire;
+			struct combat {
+				int heroDamageDone;
+				int barrierDamageDone;
+				int deaths;
+				int objectiveTime;
+				int objectiveKills;
+				int eliminations;
+				int timeOnFire;
+			};
 
-			//avgs
-			float winPercent;
-			float avgHeroDamage;
-			float avgBarrierDamage;
-			float avgDeaths;
-			float avgObjectiveTime;
-			float avgObjectiveKills;
-			float avgEliminations;
-			float avgTimeOnFire;
-		
+			struct averages {
+				float winPercent;
+				float avgHeroDamage;
+				float avgBarrierDamage;
+				float avgDeaths;
+				float avgObjectiveTime;
+				float avgObjectiveKills;
+				float avgEliminations;
+				float avgTimeOnFire;
+			};
 
-
+			match match;
+			averages averages;
+			combat combat;
+			game game;
 	public:
+		
+		virtual const std::string getName() { return "Uninitialized Hero"; }
 
 		inline void stringifyAllObjects() {
-			stringify(noMedal);
-			stringify(medalBronze);
-			stringify(medalSilver);
-			stringify(medalGold);
-			stringify(cards);
-			stringify(timePlayed);
-			stringify(gamesWon);
-			stringify(objectiveTime);
-			stringify(objectiveKills);
-			stringify(heroDamageDone);
-			stringify(barrierDamageDone);
-			stringify(deaths);
-			stringify(timeOnFire);
+		
 		}
 
 		inline void stringify(char* name, int value) {
@@ -138,42 +187,19 @@ typedef std::pair<std::string, int>			StatTable;
 		*/
 
 		heroStats(bool thatIsHealer = false, bool thatIsDamageDealer = false, bool thatIsTank = false)
-			: 
-			noMedal(0),
-			medalBronze(0),
-			medalSilver(0),
-			medalGold(0),
-			cards(0),
-			timePlayed(0),
-			gamesWon(0),
-			objectiveTime(0),
-			objectiveKills(0),
-			heroDamageDone(0),
-			barrierDamageDone(0),
-			deaths(0),
-			timeOnFire(0),
-			winPercent(0.0),
-			avgHeroDamage(0.0),
-			avgBarrierDamage(0.0),
-			avgDeaths(0.0),
-			avgObjectiveTime(0.0),
-			avgObjectiveKills(0.0),
-			avgEliminations(0.0),
-			avgTimeOnFire(0.0)
-			
 		{
-			if (thatIsDamageDealer) {
+			
+			if (thatIsDamageDealer)
 				dpsStats = new damageDealer;
-				//zarya is damagedealer
-			}
+			
 
-			if (thatIsHealer) {
+			if (thatIsHealer)
 				healerStats = new healer;
-			}
+			
 
-			if (thatIsTank) {
+			if (thatIsTank)
 				tankStats = new tank;
-			}
+			
 		} //end constructor
 
 		void stringify(int name);
@@ -187,7 +213,48 @@ typedef std::pair<std::string, int>			StatTable;
 
 		/*the only way to change stats*/
 		virtual void updateStats() {}
-		void updateBaseStats();
+		void updateBaseStats() {
+
+			for (int index = 0; index < statTable.size(); ++index) {
+
+				//check for special inits first
+				if (this->dpsStats) {
+					int soloKills;
+					int finalBlows;
+					int multiKills;
+					int criticalHits;
+					int critAcc;
+					int weaponAccuracy;
+					int weaponAccuracyBestInGame;
+					int bestKillStreak;
+
+					float damageDoneAvg;
+					float soloKillsAvg;
+					float multiKillsAvg;
+					float accuracyAvg;
+					//go thru all stats and see if they match
+					//find each name and assign to the variable
+					if (statTable[index].second.first == "Critical Hits")
+						this->dpsStats->criticalHits = statTable[index].second.second;
+					
+				}
+
+				if (this->healerStats) {
+					healerStats = new healer;
+				}
+
+				if (this->tankStats) {
+					tankStats = new tank;
+				}
+			}
+		}
+		heroStats& operator=(const heroStats& other) // copy assignment
+		{
+			
+			return *this;
+		}
+
+		virtual ~heroStats() {}
 	};
 
 	class widowStats : public heroStats {
@@ -226,10 +293,12 @@ typedef std::pair<std::string, int>			StatTable;
 		/*the values that can be changed*/
 		widowSpecificStats theseWidowStats;
 		widowAvgStats theseWidowAvgStats;
+		//damage dealer
 		heroStats baseStats = new heroStats(false, true, false);
 
 	public:
-
+		const std::string getName() { return "Widowmaker"; }
+		widowStats() { }
 		const widowSpecificStats getSpecific()  const { return this->theseWidowStats; }
 		const widowAvgStats	     getAvgStats()  const { return this->theseWidowAvgStats; }
 		const heroStats		     getBaseStats() const { return this->baseStats; }

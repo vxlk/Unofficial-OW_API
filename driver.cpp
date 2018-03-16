@@ -59,20 +59,10 @@ static std::string BATTLETAG = "ZerG-11720";		///TEMP ASSIGNMENT
 
 //may not contain every hero if not every hero is played during a comp season for at least 1 second
 //only can scrape heroes played
-DoubleString* heroId = new DoubleString[NUM_HEROES + 1]; //+1 for the all_heroes category
-std::vector<std::pair<DoubleString, StatTable> > statTable;
+//DoubleString* heroId = new DoubleString[NUM_HEROES + 1]; //+1 for the all_heroes category
+//std::vector<std::pair<DoubleString, StatTable> > statTable;
 
-static const std::string heroList[NUM_HEROES] = {
-	"Doomfist"  , "Genji"  , "McCree"     ,
-	"Pharah"    , "Reaper" , "Soldier: 76",
-	"Sombra"    , "Tracer" , "Hanzo"      ,
-	"Junkrat"   , "Mei"    , "Torbjörn"  , //this is how torb's name is read in unicode i guess..
-	"Widowmaker", "D.Va"   , "Orisa"      ,
-	"Reinhardt" , "Roadhog", "Winston"    ,
-	"Zarya"     , "Ana"	   , "Lúcio"     , //lucio ...
-	"Mercy"		, "Moira"  , "Symmetra"   ,
-	"Zenyatta"
-};
+
 
 //cURL buffer setup
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
@@ -113,11 +103,33 @@ void shortenBuffer(std::string& buffer) {
 		buffer.substr(buffer.find("value=\"0x02E00000FFFFFFFF\""));
 }
 
-/*
-heroStats matchCategoryToHero(int type, std::string name) {
 
+void addStatsToHeroContainer(heroStats* hero) {
+	
+	std::string currentHero = hero->getName();
 }
-*/
+
+heroStats* castToHeroContainer(std::string name) {
+	//buildHeroMap();
+	int heroNameIndex;
+	//if (name == heroList[1])
+		//return (new doomFistStats);
+	for (int i = 0; i < NUM_HEROES; ++i)
+		if (name == heroList[i]) {
+			heroNameIndex = i;
+			break;
+		}
+	
+	switch (heroNameIndex) {
+
+	case 12:
+		return (new widowStats);
+		break;
+
+	}
+	return new heroStats;
+}
+
 void populateHeroId(const std::string& buffer) {
 	/*
 	There is a dropdown menu you can see on the website -> this hex value represents All heroes
@@ -421,11 +433,17 @@ int main(void)
 	std::ofstream out;
 	out.open("yeya.txt");
 
+	//heroStats* test = new heroStats;
+	heroStats* test = castToHeroContainer("Widowmaker");
+	//*test = dynamic_cast<widowStats*>(test);
+	
+	//statsToHeroContainer();
 	
 	for (int i = 0; i < statTable.size(); ++i) {
-		std::cout << statTable[i].first.first << " " << statTable[i].first.second << " " << statTable[i].second.first << " " << statTable[i].second.second << "\n";
+		if (statTable[i].first.first == "Widowmaker")
+		out << statTable[i].first.first << " " << statTable[i].first.second << " " << statTable[i].second.first << " " << statTable[i].second.second << "\n";
 	}
-
+	std::cout << test->getName();
 	/*
 		//debug
 		for (int i = 0; i < NUM_HEROES + 1; i++) {
