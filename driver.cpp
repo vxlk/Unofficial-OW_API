@@ -12,6 +12,9 @@ Database is kept at <INSERT URL>
 * Proprietary and confidential
 */
 
+///TODO FIX TIME PLAYED READIN
+///A FLOAT IS USED IF THE TIME IS IN SECONDS. POTENTIAL FOR ERROR
+
 #include <string>
 #include <iostream>
 #include "curl\curl.h"
@@ -28,7 +31,7 @@ static const std::string PLATFORM_PC = "pc/";
 //I guess we'll allow plebs on the platform...
 static const std::string PLATFORM_XBL = "xbl/";
 static const std::string PLATFORM_PSN = "psn/";
-static std::string BATTLETAG = "ZerG-11720";		///TEMP ASSIGNMENT
+static std::string BATTLETAG = "Cee-11450";		///TEMP ASSIGNMENT
 
 /*					-------PROJECT SETUP INSTRUCTIONS--------
   <projectName> Properties -> C/C++ -> PreProcessor -> add CURL_STATICLIB 
@@ -61,7 +64,6 @@ static std::string BATTLETAG = "ZerG-11720";		///TEMP ASSIGNMENT
 //only can scrape heroes played
 //DoubleString* heroId = new DoubleString[NUM_HEROES + 1]; //+1 for the all_heroes category
 //std::vector<std::pair<DoubleString, StatTable> > statTable;
-
 
 
 //cURL buffer setup
@@ -110,6 +112,22 @@ void addStatsToHeroContainer(heroStats* hero) {
 }
 
 heroStats* castToHeroContainer(std::string name) {
+
+	/*
+	static const std::string heroList[NUM_HEROES] = {
+	"Doomfist"  , "Genji"  , "McCree"     ,
+	"Pharah"    , "Reaper" , "Soldier: 76",
+	"Sombra"    , "Tracer" , "Hanzo"      ,
+	"Junkrat"   , "Mei"    , "Torbjörn"  , //this is how torb's name is read in unicode i guess..
+	"Widowmaker", "D.Va"   , "Orisa"      ,
+	"Reinhardt" , "Roadhog", "Winston"    ,
+	"Zarya"     , "Ana"	   , "Lúcio"     , //lucio ...
+	"Mercy"		, "Moira"  , "Symmetra"   ,
+	"Zenyatta"
+};
+	*/
+	if (name == "Torbjorn")
+		name = "Torbjörn"; //make my life easier
 	//buildHeroMap();
 	int heroNameIndex;
 	//if (name == heroList[1])
@@ -119,15 +137,33 @@ heroStats* castToHeroContainer(std::string name) {
 			heroNameIndex = i;
 			break;
 		}
-	
+	///NEED a fail safe here
 	switch (heroNameIndex) {
+	case 0:
+		return new doomfistStats;
+	case 1:
+		return new genjiStats;
+		break;
+	case 2:
+		return new mccreeStats;
+		break;
+	case 3:
+		return new pharahStats;
+		break;
+	case 4:
+		return new reaperStats;
+		break;
 
+
+	case 11:
+		return new torbjornStats;
+		break;
 	case 12:
-		return (new widowStats);
+		return new widowStats;
 		break;
 
 	}
-	return new heroStats;
+	
 }
 
 void populateHeroId(const std::string& buffer) {
@@ -332,6 +368,11 @@ void getHeroStats(const std::string& buffer) {
 				//a name was found, now find the stat value
 				if (statName != "") {
 					while (subString.find("</td>") == subString.npos) {
+						//skip commas in integer
+						if (buffer[loopIndex] == ',' || buffer[loopIndex] == ':') {
+							++loopIndex;
+							continue;
+						}
 						subString += buffer[loopIndex];
 						statNum += buffer[loopIndex];
 						++loopIndex;
@@ -347,12 +388,18 @@ void getHeroStats(const std::string& buffer) {
 					if (statNum.find('%') != statNum.npos)
 						statName.erase(std::remove(statName.begin(), statName.end(), '%'), statName.end());
 
+
 					///TESTING
 					//if (heroId[index].first == "Widowmaker")
 					//std::cout << statName << " " << statNum << "\n";
 					
-					//stat table ->                                    heroName,        stat category                 stat Name, stat Value
-					statTable.push_back(std::make_pair(std::make_pair(heroId[index].first, currentCategory) , std::make_pair(statName, stoi(statNum))));
+					//stat table ->                                    heroName,           stat category                     stat Name, stat Value
+					if (statNum.find("minutes") != statNum.npos)
+						statTable.push_back(std::make_pair(std::make_pair(heroId[index].first, currentCategory), std::make_pair(statName, (stof(statNum)/100))));
+					else if (statNum.find("seconds") != statNum.npos)
+						statTable.push_back(std::make_pair(std::make_pair(heroId[index].first, currentCategory), std::make_pair(statName, (stof(statNum) / 10000))));
+					else
+						statTable.push_back(std::make_pair(std::make_pair(heroId[index].first, currentCategory) , std::make_pair(statName, stof(statNum))));
 
 					//clear for next run
 					statName.clear();
@@ -375,8 +422,8 @@ void standardReadFromString() {
 
 	curl = curl_easy_init();
 	if (curl) {
-
-		curl_easy_setopt(curl, CURLOPT_URL, "https://playoverwatch.com/en-us/career/pc/ZerG-11720");
+		//https://playoverwatch.com/en-us/career/pc/ZerG-11720
+		curl_easy_setopt(curl, CURLOPT_URL, "https://playoverwatch.com/en-us/career/pc/Cee-11450");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		res = curl_easy_perform(curl);
@@ -434,16 +481,31 @@ int main(void)
 	out.open("yeya.txt");
 
 	//heroStats* test = new heroStats;
-	heroStats* test = castToHeroContainer("Widowmaker");
+	heroStats* test;
+	test = castToHeroContainer("Torbjorn");
 	//*test = dynamic_cast<widowStats*>(test);
 	
 	//statsToHeroContainer();
-	
+
+	/*
+	for (int i = 0; i < NUM_HEROES + 1; ++i) {
+		out << heroId[i].first << " " << heroId[i].second << "\n";
+	}
+	*/
+
 	for (int i = 0; i < statTable.size(); ++i) {
-		if (statTable[i].first.first == "Widowmaker")
+		if (statTable[i].first.first == "Torbjörn")
 		out << statTable[i].first.first << " " << statTable[i].first.second << " " << statTable[i].second.first << " " << statTable[i].second.second << "\n";
 	}
-	std::cout << test->getName();
+	std::cout << test->getName() << "\n";
+	test->updateStats();
+
+	//widowStats* newTest = test;
+
+	std::cout << dynamic_cast<torbjornStats*>(test)->statInterface->specificStats.torbKills;
+	
+
+
 	/*
 		//debug
 		for (int i = 0; i < NUM_HEROES + 1; i++) {
@@ -451,8 +513,8 @@ int main(void)
 			std::cout << heroId[i].first << " " << heroId[i].second << "\n";
 		}
 		*/
-	int x;
-	std::cin >> x;
+	//int x;
+	//std::cin >> x;
 
 	return 0;
 }
