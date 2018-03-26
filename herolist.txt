@@ -1,0 +1,11 @@
+static const std::string heroList[NUM_HEROES] = {
+	"Doomfist"  , "Genji"  , "McCree"     ,
+	"Pharah"    , "Reaper" , "Soldier: 76",
+	"Sombra"    , "Tracer" , "Hanzo"      ,
+	"Junkrat"   , "Mei"    , "Torbjörn"  , //this is how torb's name is read in unicode i guess..
+	"Widowmaker", "D.Va"   , "Orisa"      ,
+	"Reinhardt" , "Roadhog", "Winston"    ,
+	"Zarya"     , "Ana"	   , "Lúcio"     , //lucio ...
+	"Mercy"		, "Moira"  , "Symmetra"   ,
+	"Zenyatta"
+};
