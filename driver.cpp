@@ -423,7 +423,7 @@ void standardReadFromString() {
 	curl = curl_easy_init();
 	if (curl) {
 		//https://playoverwatch.com/en-us/career/pc/ZerG-11720
-		curl_easy_setopt(curl, CURLOPT_URL, "https://playoverwatch.com/en-us/career/pc/Cee-11450");
+		curl_easy_setopt(curl, CURLOPT_URL, "https://playoverwatch.com/en-us/career/pc/EvilToaster-1649");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		res = curl_easy_perform(curl);
@@ -494,7 +494,7 @@ int main(void)
 	*/
 
 	for (int i = 0; i < statTable.size(); ++i) {
-		if (statTable[i].first.first == "Torbjörn")
+		if (statTable[i].first.first == "Reinhardt")
 		out << statTable[i].first.first << " " << statTable[i].first.second << " " << statTable[i].second.first << " " << statTable[i].second.second << "\n";
 	}
 	std::cout << test->getName() << "\n";

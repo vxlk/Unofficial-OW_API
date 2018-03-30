@@ -78,32 +78,19 @@ void buildHeroMap() {
 	*/
 
 	struct damageDealer {
-		int soloKills;
-		int finalBlows;
-		int multiKills;
 		int criticalHits;
 		int critAcc;
 		int weaponAccuracy;
 
-
 		int weaponAccuracyBestInGame;
 		int bestKillStreak;
-		int finalBlowsBestGame;
 		int critBestLife;
 		int critBestGame;
-		int multiKillBest;
-		int soloKillsBestGame;
 
-
-		float soloKillsAvg;
-		float multiKillsAvg;
 		float accuracyAvg;
-		float finalBlowsAvg;
 		float critAvg;
 		float critPerTen;
-		float soloKillsPerTen;
-		float multiKillsPerTen;
-		float finalBlowsPerTen;
+	
 	};
 
 	struct healer {
@@ -149,6 +136,7 @@ void buildHeroMap() {
 	};
 
 	struct combat {
+		int soloKills;
 		int allDamageDone;
 		int heroDamageDone;
 		int barrierDamageDone;
@@ -158,7 +146,12 @@ void buildHeroMap() {
 		int eliminations;
 		int timeOnFire;
 		int killStreakBest;
+		int finalBlows;
+		int multiKills;
 
+		int soloKillsBestGame;
+		int finalBlowsBestGame;
+		int multiKillsBestGame;
 		int eliminationsBestGame;
 		int eliminationsBestLife;
 		int heroDamageDoneBestLife;
@@ -180,9 +173,15 @@ void buildHeroMap() {
 		float avgObjectiveKills;
 		float avgEliminations;
 		float avgTimeOnFire;
+		float avgSoloKills;
+		float avgMultiKills;
+		float avgFinalBlows;
 		
 		float elimsPerLife;
 
+		float finalBlowsPerTen;
+		float multiKillsPerTen;
+		float soloKillsPerTen;
 		float heroDamagePerTen;
 		float barrierDamagePerTen;
 		float deathsPerTen;
@@ -309,24 +308,13 @@ void buildHeroMap() {
 						//find each name and assign to the variable
 						if (statTable[index].second.first == "Critical Hits")
 							this->dpsStats->criticalHits = statTable[index].second.second;
-						if (statTable[index].second.first == "Solo Kills")
-							this->dpsStats->soloKills = statTable[index].second.second;
-						if (statTable[index].second.first == "Final Blows")
-							this->dpsStats->finalBlows = statTable[index].second.second;
-						if (statTable[index].second.first == "Multikills")
-							this->dpsStats->multiKills = statTable[index].second.second;
+						
 						if (statTable[index].second.first == "Critical Hit Accuracy")
 							this->dpsStats->critAcc = statTable[index].second.second;
 						if (statTable[index].second.first == "Weapon Accuracy")
 							this->dpsStats->weaponAccuracy = statTable[index].second.second;
 						if (statTable[index].second.first == "Weapon Accuracy - Best in Game")
 							this->dpsStats->weaponAccuracyBestInGame = statTable[index].second.second;
-						if (statTable[index].second.first == "Final Blows - Most in Game")
-							this->dpsStats->finalBlowsBestGame = statTable[index].second.second;
-						if (statTable[index].second.first == "Multikill - Best")
-							this->dpsStats->multiKillBest = statTable[index].second.second;
-						if (statTable[index].second.first == "Solo Kills - Most in Game")
-							this->dpsStats->soloKillsBestGame = statTable[index].second.second;
 						if (statTable[index].second.first == "Critical Hits - Most in Game")
 							this->dpsStats->critBestGame = statTable[index].second.second;
 						if (statTable[index].second.first == "Critical Hits - Most in Life")
@@ -336,15 +324,9 @@ void buildHeroMap() {
 
 						//dps averages
 						this->dpsStats->accuracyAvg = this->dpsStats->weaponAccuracy / (float)this->game_.gamesPlayed;
-						this->dpsStats->multiKillsAvg = this->dpsStats->multiKills / (float)this->game_.gamesPlayed;
-						this->dpsStats->soloKillsAvg = this->dpsStats->soloKills / (float)this->game_.gamesPlayed;
-						this->dpsStats->finalBlowsAvg = this->dpsStats->finalBlows / (float)this->game_.gamesPlayed;
 						this->dpsStats->critAvg = this->dpsStats->critAvg / (float)this->game_.gamesPlayed;
 
 						this->dpsStats->critPerTen = this->dpsStats->criticalHits / (float)timePlayed;
-						this->dpsStats->soloKillsPerTen = this->dpsStats->soloKills / (float)timePlayed;
-						this->dpsStats->multiKillsPerTen = this->dpsStats->multiKills / (float)timePlayed;
-						this->dpsStats->finalBlowsPerTen = this->dpsStats->finalBlows / (float)timePlayed;
 
 					}
 
@@ -366,6 +348,18 @@ void buildHeroMap() {
 
 					//update universal stats
 					//combat
+					if (statTable[index].second.first == "Solo Kills")
+						this->combat_.soloKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Final Blows")
+						this->combat_.finalBlows = statTable[index].second.second;
+					if (statTable[index].second.first == "Multikills")
+						this->combat_.multiKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Final Blows - Most in Game")
+						this->combat_.finalBlowsBestGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Multikill - Best")
+						this->combat_.multiKillsBestGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Solo Kills - Most in Game")
+						this->combat_.soloKillsBestGame = statTable[index].second.second;
 					if (statTable[index].second.first == "Eliminations")
 						this->combat_.eliminations = statTable[index].second.second;
 					if (statTable[index].second.first == "Deaths")
@@ -431,6 +425,9 @@ void buildHeroMap() {
 					///calculate averages
 			
 					//Does not factor in ties 
+					this->averages_.avgMultiKills	  = this->combat_.multiKills / (float)this->game_.gamesPlayed;
+					this->averages_.avgSoloKills	  = this->combat_.soloKills / (float)this->game_.gamesPlayed;
+					this->averages_.avgFinalBlows	  = this->combat_.finalBlows / (float)this->game_.gamesPlayed;
 					this->averages_.elimsPerLife	  = this->combat_.eliminations / (float)this->combat_.deaths;
 					this->averages_.winPercent		  = this->game_.gamesLost / (float)this->game_.gamesWon;
 					this->averages_.avgHeroDamage	  = this->combat_.heroDamageDone / (float)this->game_.gamesPlayed;
@@ -441,6 +438,9 @@ void buildHeroMap() {
 					this->averages_.avgEliminations	  = this->combat_.eliminations / (float)this->game_.gamesPlayed;
 					this->averages_.avgTimeOnFire	  = this->combat_.timeOnFire / (float)this->game_.gamesPlayed;
 
+					this->averages_.soloKillsPerTen		= this->combat_.soloKills / (float)timePlayed;
+					this->averages_.multiKillsPerTen	= this->combat_.multiKills / (float)timePlayed;
+					this->averages_.finalBlowsPerTen	= this->combat_.finalBlows / (float)timePlayed;
 					this->averages_.barrierDamagePerTen = this->combat_.barrierDamageDone / (float)timePlayed;
 					this->averages_.deathsPerTen		= this->combat_.deaths / (float)timePlayed;
 					this->averages_.eliminationsPerTen  = this->combat_.eliminations / (float)timePlayed;
@@ -1591,5 +1591,176 @@ void buildHeroMap() {
 
 
 			this->statInterface = new torbjornStatInterface(*this);
+		}
+	};
+
+	class dvaStats : public heroStats {
+
+	private:
+		struct dvaSpecificStats {
+			int selfDestructKills;
+			int selfDestructKillsMostInGame;
+			int mechsCalled;
+			int mechsCalledMostInGame;
+			int mechDeaths;
+		};
+
+		struct dvaAvgStats {
+			float selfDestructKillsAvg;
+			float selfDestructKillsPerTen;
+			float mechsCalledAvg;
+			float mechsCalledPerTen;
+			float mechDeathsAvg;
+			float mechDeathsPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct dvaStatInterface {
+			dvaSpecificStats specificStats;
+			dvaAvgStats avgStats;
+			baseStatI baseStats;
+			dvaStatInterface(dvaStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		dvaSpecificStats thesedvaStats;
+		dvaAvgStats thesedvaAvgStats;
+
+	public:
+		const std::string getName() { return "D.Va"; }
+		dvaStats() { internalSetup(false, true, true); }
+		const dvaSpecificStats getSpecific()  const { return this->thesedvaStats; }
+		const dvaAvgStats	     getAvgStats()  const { return this->thesedvaAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const dvaStatInterface* statInterface = new dvaStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Self-Destruct Kills")
+						this->thesedvaStats.selfDestructKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Self-Destruct Kills - Most in Game")
+						this->thesedvaStats.selfDestructKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Mechs Called")
+						this->thesedvaStats.mechsCalled = statTable[index].second.second;
+					if (statTable[index].second.first == "Mechs Called - Most in Game")
+						this->thesedvaStats.mechsCalledMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Mech Deaths")
+						this->thesedvaStats.mechDeaths = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->thesedvaAvgStats.mechDeathsPerTen = this->thesedvaStats.mechDeaths / (float)timePlayed;
+			this->thesedvaAvgStats.selfDestructKillsPerTen = this->thesedvaStats.selfDestructKills / (float)timePlayed;
+			this->thesedvaAvgStats.mechsCalledPerTen = this->thesedvaStats.mechsCalled / (float)timePlayed;
+
+			this->thesedvaAvgStats.mechDeathsAvg = this->thesedvaStats.mechDeaths / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesedvaAvgStats.selfDestructKillsAvg = this->thesedvaStats.selfDestructKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesedvaAvgStats.mechsCalledAvg = this->thesedvaStats.mechsCalled / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new dvaStatInterface(*this);
+		}
+	};
+
+	///NEED TO DEAL WITH e IN LARGE NUMBERS ... 8.76155e+06      = 8.76155  + (e+) >> 06 = 10^6
+	class orisaStats : public heroStats {
+
+	private:
+		struct orisaSpecificStats {
+			int selfDestructKills;
+			int selfDestructKillsMostInGame;
+			int mechsCalled;
+			int mechsCalledMostInGame;
+			int mechDeaths;
+		};
+
+		struct orisaAvgStats {
+			float selfDestructKillsAvg;
+			float selfDestructKillsPerTen;
+			float mechsCalledAvg;
+			float mechsCalledPerTen;
+			float mechDeathsAvg;
+			float mechDeathsPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct orisaStatInterface {
+			orisaSpecificStats specificStats;
+			orisaAvgStats avgStats;
+			baseStatI baseStats;
+			orisaStatInterface(orisaStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		orisaSpecificStats theseorisaStats;
+		orisaAvgStats theseorisaAvgStats;
+
+	public:
+		const std::string getName() { return "Orisa"; }
+		orisaStats() { internalSetup(false, true, true); }
+		const orisaSpecificStats getSpecific()  const { return this->theseorisaStats; }
+		const orisaAvgStats	     getAvgStats()  const { return this->theseorisaAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const orisaStatInterface* statInterface = new orisaStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Self-Destruct Kills")
+						this->theseorisaStats.selfDestructKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Self-Destruct Kills - Most in Game")
+						this->theseorisaStats.selfDestructKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Mechs Called")
+						this->theseorisaStats.mechsCalled = statTable[index].second.second;
+					if (statTable[index].second.first == "Mechs Called - Most in Game")
+						this->theseorisaStats.mechsCalledMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Mech Deaths")
+						this->theseorisaStats.mechDeaths = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->theseorisaAvgStats.mechDeathsPerTen = this->theseorisaStats.mechDeaths / (float)timePlayed;
+			this->theseorisaAvgStats.selfDestructKillsPerTen = this->theseorisaStats.selfDestructKills / (float)timePlayed;
+			this->theseorisaAvgStats.mechsCalledPerTen = this->theseorisaStats.mechsCalled / (float)timePlayed;
+
+			this->theseorisaAvgStats.mechDeathsAvg = this->theseorisaStats.mechDeaths / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseorisaAvgStats.selfDestructKillsAvg = this->theseorisaStats.selfDestructKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseorisaAvgStats.mechsCalledAvg = this->theseorisaStats.mechsCalled / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new orisaStatInterface(*this);
 		}
 	};
