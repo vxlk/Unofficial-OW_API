@@ -22,6 +22,7 @@ Database is kept at <INSERT URL>
 #include <algorithm>
 //#include <vector> Included with heroStats.h
 #include "heroStats.h"
+#include <cmath>
 
 #define NUM_CATEGORIES 12
 #define NUM_HEROES 26
@@ -111,6 +112,47 @@ void addStatsToHeroContainer(heroStats* hero) {
 	std::string currentHero = hero->getName();
 }
 
+float convertFromScientificNotation(std::string statNum) {
+	std::string tempBuffer;
+	int index = 0;
+	int coefficient = 0;
+	float toBeReturned = 0;
+
+	while (statNum[index] != 'e') {
+		tempBuffer += statNum[index];
+		++index;
+	}
+
+	while (statNum[index] != '\0') {
+		if (statNum[index] == 'e' || statNum[index] == ' ')
+			continue;
+		if (statNum[index] == '+') {
+			++index; //read past the exponent operator and get the power n
+			coefficient = statNum[index];
+			++index; //go to the next number that is not the power n
+
+			//deal with form 0n -> n
+			if (coefficient == 0) {
+				++index;
+				coefficient = statNum[index];
+				++index;
+				continue;
+			}
+		}
+		tempBuffer += statNum[index];
+		++index;
+
+		//convert to float
+		toBeReturned = stof(tempBuffer);
+		//convert the number to scientific notation
+		toBeReturned *= pow(10, coefficient);
+
+		return toBeReturned;
+	}
+
+	//do the conversion
+}
+
 heroStats* castToHeroContainer(std::string name) {
 
 	/*
@@ -126,8 +168,12 @@ heroStats* castToHeroContainer(std::string name) {
 	"Zenyatta"
 };
 	*/
-	if (name == "Torbjorn")
+	if (name == "Torbjorn" || name == "Torbjörn")
 		name = "TorbjÃ¶rn"; //make my life easier
+	if (name == "Dva")
+		name = "D.va";
+	if (name == "Lúcio" || name == "Lucio")
+		name = "LÃºcio";
 	//buildHeroMap();
 	int heroNameIndex;
 	//if (name == heroList[1])
@@ -160,6 +206,12 @@ heroStats* castToHeroContainer(std::string name) {
 		break;
 	case 12:
 		return new widowStats;
+		break;
+	case 13:
+		return new dvaStats;
+		break;
+	case 14:
+		return new orisaStats;
 		break;
 
 	}
@@ -384,7 +436,7 @@ void getHeroStats(const std::string& buffer) {
 					statName.erase(statName.find("</td>"), statName.find("</td>") + 5);
 					statNum.erase(statNum.find("</td>"), statNum.find("</td>") + 5);
 					statNum.erase(statNum.find("<td>"), statNum.find("<td>") + 4);
-
+					
 					if (statNum.find('%') != statNum.npos)
 						statName.erase(std::remove(statName.begin(), statName.end(), '%'), statName.end());
 
@@ -393,7 +445,11 @@ void getHeroStats(const std::string& buffer) {
 					//if (heroId[index].first == "Widowmaker")
 					//std::cout << statName << " " << statNum << "\n";
 					
-					//stat table ->                                    heroName,           stat category                     stat Name, stat Value
+					//stat table ->                                       heroName,           stat category                    stat Name, stat Value
+					if (statNum.find("e+") != statNum.npos) {
+						float convertedStatNum = convertFromScientificNotation(statNum);
+						statTable.push_back(std::make_pair(std::make_pair(heroId[index].first, currentCategory), std::make_pair(statName, convertedStatNum)));
+					}
 					if (statNum.find("minutes") != statNum.npos)
 						statTable.push_back(std::make_pair(std::make_pair(heroId[index].first, currentCategory), std::make_pair(statName, (stof(statNum)/100))));
 					else if (statNum.find("seconds") != statNum.npos)
@@ -423,7 +479,7 @@ void standardReadFromString() {
 	curl = curl_easy_init();
 	if (curl) {
 		//https://playoverwatch.com/en-us/career/pc/ZerG-11720
-		curl_easy_setopt(curl, CURLOPT_URL, "https://playoverwatch.com/en-us/career/pc/EvilToaster-1649");
+		curl_easy_setopt(curl, CURLOPT_URL, "https://playoverwatch.com/en-us/career/pc/Naisu-21377");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		res = curl_easy_perform(curl);
@@ -482,27 +538,29 @@ int main(void)
 
 	//heroStats* test = new heroStats;
 	heroStats* test;
-	test = castToHeroContainer("Torbjorn");
+	test = castToHeroContainer("Orisa");
 	//*test = dynamic_cast<widowStats*>(test);
 	
 	//statsToHeroContainer();
 
-	/*
+	
 	for (int i = 0; i < NUM_HEROES + 1; ++i) {
-		out << heroId[i].first << " " << heroId[i].second << "\n";
+		std::cout << heroId[i].first << " " << heroId[i].second << "\n";
+		if (heroId[i].first == "Moira")
+			std::cout << "you win";
 	}
-	*/
+	std::string temp;
 
 	for (int i = 0; i < statTable.size(); ++i) {
-		if (statTable[i].first.first == "Reinhardt")
-		out << statTable[i].first.first << " " << statTable[i].first.second << " " << statTable[i].second.first << " " << statTable[i].second.second << "\n";
+		//if (statTable[i].first.first == "Moira")
+			out << statTable[i].first.first << " " << statTable[i].first.second << " " << statTable[i].second.first << " " << statTable[i].second.second << "\n";
 	}
 	std::cout << test->getName() << "\n";
 	test->updateStats();
 
 	//widowStats* newTest = test;
-
-	std::cout << dynamic_cast<torbjornStats*>(test)->statInterface->specificStats.torbKills;
+	//causes nullptr if no orisa time
+//	std::cout << dynamic_cast<orisaStats*>(test)->statInterface->baseStats.tankInterface->damageBlocked; //how to access tank stats
 	
 
 

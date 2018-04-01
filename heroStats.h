@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <vector>
 //#include "curl_Get.h"
-
+///TODO: CHECK FOR ENVIORNMENTAL KILLS AND OTHER STUFF THAT IS HERO SPECIFIC BUT NOT IN HERO SPECIFIC
 /*nifty c++ trick to turn a var name into a string*/
 #define STRINGIFY(name) stringify(#name), (name))
 #define NUM_CATEGORIES 12
@@ -101,6 +101,9 @@ void buildHeroMap() {
 		int healingDone;
 		int healingDoneMostInGame;
 
+		float healingDonePerTen;
+		float offensiveAssistsPerTen;
+		float defensiveAssistsPerTen;
 		float healingDoneAvg;
 		float defensiveAssistsAvg;
 		float offensiveAssistsAvg;
@@ -148,6 +151,7 @@ void buildHeroMap() {
 		int killStreakBest;
 		int finalBlows;
 		int multiKills;
+		int environmentalKills;
 
 		int soloKillsBestGame;
 		int finalBlowsBestGame;
@@ -176,9 +180,11 @@ void buildHeroMap() {
 		float avgSoloKills;
 		float avgMultiKills;
 		float avgFinalBlows;
+		float avgEnvironmentalKills;
 		
 		float elimsPerLife;
 
+		float environmentalKillsPerTen;
 		float finalBlowsPerTen;
 		float multiKillsPerTen;
 		float soloKillsPerTen;
@@ -223,8 +229,13 @@ void buildHeroMap() {
 			averages averages;
 			combat combat;
 			game game;
-
+			damageDealer* dpsInterface;
+			tank* tankInterface;
+			healer* healInterface;
 			const baseStatI updateI(const baseStatI* those) {
+				this->tankInterface = those->tankInterface;
+				this->dpsInterface = those->dpsInterface;
+				this->healInterface = those->healInterface;
 				this->match = those->match;
 				this->averages = those->averages;
 				this->combat = those->combat;
@@ -236,6 +247,18 @@ void buildHeroMap() {
 
 			//heroStat copy
 			baseStatI(heroStats those) {
+				if (those.dpsStats) {
+					this->dpsInterface = new damageDealer;
+					this->dpsInterface = those.dpsStats;
+				}
+				if (those.tankStats) {
+					this->tankInterface = new tank;
+					this->tankInterface = those.tankStats;
+				}
+				if (those.healerStats) {
+					this->healInterface = new healer;
+					this->healInterface = those.healerStats;
+				}
 				this->match = those.match_;
 				this->averages = those.averages_;
 				this->combat = those.combat_;
@@ -331,7 +354,27 @@ void buildHeroMap() {
 					}
 
 					if (this->healerStats) {
-						healerStats = new healer;
+						if (statTable[index].second.first == "Healing Done")
+							this->healerStats->healingDone = statTable[index].second.second;
+						if (statTable[index].second.first == "Healing Done - Most in Game")
+							this->healerStats->healingDoneMostInGame = statTable[index].second.second;
+						if (statTable[index].second.first == "Offensive Assists")
+							this->healerStats->offensiveAssists = statTable[index].second.second;
+						if (statTable[index].second.first == "Defensive Assists")
+							this->healerStats->defensiveAssists = statTable[index].second.second;
+						if (statTable[index].second.first == "Offensive Assists - Most in Game")
+							this->healerStats->offensiveAssistsMostInGame = statTable[index].second.second;
+						if (statTable[index].second.first == "Defensive Assists - Most in Game")
+							this->healerStats->defensiveAssistsMostInGame = statTable[index].second.second;
+
+						//tank avgs
+						this->healerStats->healingDoneAvg = this->healerStats->healingDone / (float)this->game_.gamesPlayed;
+						this->healerStats->offensiveAssistsAvg = this->healerStats->offensiveAssists / (float)this->game_.gamesPlayed;
+						this->healerStats->defensiveAssistsAvg = this->healerStats->healingDone / (float)this->game_.gamesPlayed;
+
+						this->healerStats->healingDonePerTen = this->healerStats->healingDone / (float)timePlayed;
+						this->healerStats->offensiveAssistsPerTen = this->healerStats->offensiveAssists / (float)timePlayed;
+						this->healerStats->defensiveAssists = this->healerStats->defensiveAssists / (float)timePlayed;
 					}
 
 					if (this->tankStats) {
@@ -376,6 +419,9 @@ void buildHeroMap() {
 						this->combat_.heroDamageDone = statTable[index].second.second;
 					if (statTable[index].second.first == "Barrier Damage Done")
 						this->combat_.barrierDamageDone = statTable[index].second.second;
+					if (statTable[index].second.first == "Environmental Kills")
+						this->combat_.environmentalKills = statTable[index].second.second;
+					
 					//match
 					if (statTable[index].second.first == "Medals - Bronze")
 						this->match_.medalBronze = statTable[index].second.second;
@@ -425,6 +471,7 @@ void buildHeroMap() {
 					///calculate averages
 			
 					//Does not factor in ties 
+					this->averages_.avgEnvironmentalKills = this->combat_.environmentalKills / (float)this->game_.gamesPlayed;
 					this->averages_.avgMultiKills	  = this->combat_.multiKills / (float)this->game_.gamesPlayed;
 					this->averages_.avgSoloKills	  = this->combat_.soloKills / (float)this->game_.gamesPlayed;
 					this->averages_.avgFinalBlows	  = this->combat_.finalBlows / (float)this->game_.gamesPlayed;
@@ -438,6 +485,7 @@ void buildHeroMap() {
 					this->averages_.avgEliminations	  = this->combat_.eliminations / (float)this->game_.gamesPlayed;
 					this->averages_.avgTimeOnFire	  = this->combat_.timeOnFire / (float)this->game_.gamesPlayed;
 
+					this->averages_.environmentalKillsPerTen = this->combat_.environmentalKills / (float)timePlayed;
 					this->averages_.soloKillsPerTen		= this->combat_.soloKills / (float)timePlayed;
 					this->averages_.multiKillsPerTen	= this->combat_.multiKills / (float)timePlayed;
 					this->averages_.finalBlowsPerTen	= this->combat_.finalBlows / (float)timePlayed;
@@ -1679,25 +1727,21 @@ void buildHeroMap() {
 		}
 	};
 
-	///NEED TO DEAL WITH e IN LARGE NUMBERS ... 8.76155e+06      = 8.76155  + (e+) >> 06 = 10^6
 	class orisaStats : public heroStats {
 
 	private:
 		struct orisaSpecificStats {
-			int selfDestructKills;
-			int selfDestructKillsMostInGame;
-			int mechsCalled;
-			int mechsCalledMostInGame;
-			int mechDeaths;
+			int damageAmplified;
+			int damageAmplifiedMostInGame;
+			int superchargerAssists;
+			int superchargerAssistsMostInGame;
 		};
 
 		struct orisaAvgStats {
-			float selfDestructKillsAvg;
-			float selfDestructKillsPerTen;
-			float mechsCalledAvg;
-			float mechsCalledPerTen;
-			float mechDeathsAvg;
-			float mechDeathsPerTen;
+			float damageAmplifiedAvg;
+			float damageAmplifiedPerTen;
+			float superchargerAssistsAvg;
+			float superchargerAsssistsPerTen;
 		};
 
 		/*the values the implementer can see*/
@@ -1733,16 +1777,14 @@ void buildHeroMap() {
 			//update specific stats
 			for (int index = 0; index < statTable.size(); ++index) {
 				if (statTable[index].first.first == this->getName()) {
-					if (statTable[index].second.first == "Self-Destruct Kills")
-						this->theseorisaStats.selfDestructKills = statTable[index].second.second;
-					if (statTable[index].second.first == "Self-Destruct Kills - Most in Game")
-						this->theseorisaStats.selfDestructKillsMostInGame = statTable[index].second.second;
-					if (statTable[index].second.first == "Mechs Called")
-						this->theseorisaStats.mechsCalled = statTable[index].second.second;
-					if (statTable[index].second.first == "Mechs Called - Most in Game")
-						this->theseorisaStats.mechsCalledMostInGame = statTable[index].second.second;
-					if (statTable[index].second.first == "Mech Deaths")
-						this->theseorisaStats.mechDeaths = statTable[index].second.second;
+					if (statTable[index].second.first == "Damage Amplified")
+						this->theseorisaStats.damageAmplified = statTable[index].second.second;
+					if (statTable[index].second.first == "Damage Amplified - Most in Game")
+						this->theseorisaStats.damageAmplifiedMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Supercharger Assists")
+						this->theseorisaStats.superchargerAssists = statTable[index].second.second;
+					if (statTable[index].second.first == "Supercharger Assists - Most in Game")
+						this->theseorisaStats.superchargerAssistsMostInGame = statTable[index].second.second;
 				}
 			}
 
@@ -1753,14 +1795,777 @@ void buildHeroMap() {
 			//cast to ten minute intervals
 			timePlayed /= 10;
 
-			this->theseorisaAvgStats.mechDeathsPerTen = this->theseorisaStats.mechDeaths / (float)timePlayed;
-			this->theseorisaAvgStats.selfDestructKillsPerTen = this->theseorisaStats.selfDestructKills / (float)timePlayed;
-			this->theseorisaAvgStats.mechsCalledPerTen = this->theseorisaStats.mechsCalled / (float)timePlayed;
+			this->theseorisaAvgStats.superchargerAsssistsPerTen = this->theseorisaStats.superchargerAssists / (float)timePlayed;
+			this->theseorisaAvgStats.damageAmplifiedPerTen = this->theseorisaStats.damageAmplified / (float)timePlayed;
 
-			this->theseorisaAvgStats.mechDeathsAvg = this->theseorisaStats.mechDeaths / (float)this->baseStatInterface->game.gamesPlayed;
-			this->theseorisaAvgStats.selfDestructKillsAvg = this->theseorisaStats.selfDestructKills / (float)this->baseStatInterface->game.gamesPlayed;
-			this->theseorisaAvgStats.mechsCalledAvg = this->theseorisaStats.mechsCalled / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseorisaAvgStats.superchargerAssistsAvg = this->theseorisaStats.superchargerAssists / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseorisaAvgStats.damageAmplifiedAvg = this->theseorisaStats.damageAmplified / (float)this->baseStatInterface->game.gamesPlayed;
 
 			this->statInterface = new orisaStatInterface(*this);
+		}
+	};
+
+	class reinhardtStats : public heroStats {
+
+	private:
+		struct reinhardtSpecificStats {
+			int chargeKills;
+			int chargeKillsMostInGame;
+			int fireStrikeKills;
+			int fireStrikeKillsMostInGame;
+			int earthStrikeKills;
+			int earthStrikeKIllsMostInGame;
+		};
+
+		struct reinhardtAvgStats {
+			float chargeKillsAvg;
+			float chargeKillsPerTen;
+			float fireStrikeKillsAvg;
+			float fireStrikeKillsPerTen;
+			float earthStrikeKillsAvg;
+			float earthStrikeKillsPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct reinhardtStatInterface {
+			reinhardtSpecificStats specificStats;
+			reinhardtAvgStats avgStats;
+			baseStatI baseStats;
+			reinhardtStatInterface(reinhardtStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		reinhardtSpecificStats thesereinhardtStats;
+		reinhardtAvgStats thesereinhardtAvgStats;
+
+	public:
+		const std::string getName() { return "Reinhardt"; }
+		reinhardtStats() { internalSetup(false, false, true); }
+		const reinhardtSpecificStats getSpecific()  const { return this->thesereinhardtStats; }
+		const reinhardtAvgStats	     getAvgStats()  const { return this->thesereinhardtAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const reinhardtStatInterface* statInterface = new reinhardtStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Charge Kills")
+						this->thesereinhardtStats.chargeKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Charge Kills - Most in Game")
+						this->thesereinhardtStats.chargeKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Fire Strike Kills")
+						this->thesereinhardtStats.fireStrikeKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Fire Strike Kills - Most in Game")
+						this->thesereinhardtStats.fireStrikeKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Earthshatter Kills")
+						this->thesereinhardtStats.earthStrikeKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Earthshatter Kills - Most in Game")
+						this->thesereinhardtStats.earthStrikeKIllsMostInGame = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->thesereinhardtAvgStats.chargeKillsPerTen = this->thesereinhardtStats.chargeKills / (float)timePlayed;
+			this->thesereinhardtAvgStats.earthStrikeKillsPerTen = this->thesereinhardtStats.earthStrikeKills / (float)timePlayed;
+			this->thesereinhardtAvgStats.fireStrikeKillsPerTen = this->thesereinhardtStats.fireStrikeKills / (float)timePlayed;
+
+			this->thesereinhardtAvgStats.chargeKillsAvg = this->thesereinhardtStats.chargeKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesereinhardtAvgStats.earthStrikeKillsAvg = this->thesereinhardtStats.earthStrikeKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesereinhardtAvgStats.fireStrikeKillsAvg = this->thesereinhardtStats.fireStrikeKills / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new reinhardtStatInterface(*this);
+		}
+	};
+
+	class roadhogStats : public heroStats {
+
+	private:
+		struct roadhogSpecificStats {
+			int enemiesHooked;
+			int enemiesHookedMostInGame;
+			int hooksAttempted;
+			int wholeHogKills;
+			int wholeHogKillsMostInGame;
+			int hookAccBestInGame;
+			int selfHealing;
+			int selfHealingMostInGame;
+			int hookAcc;
+		};
+
+		struct roadhogAvgStats {
+			float enemiesHookedAvg;
+			float enemiesHookedPerTen;
+			float hooksAttemptedAvg;
+			float hooksAttemptedPerTen;
+			float wholeHogKillsAvg;
+			float wholeHogKillsPerTen;
+			float selfHealingAvg;
+			float selfHealingPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct roadhogStatInterface {
+			roadhogSpecificStats specificStats;
+			roadhogAvgStats avgStats;
+			baseStatI baseStats;
+			roadhogStatInterface(roadhogStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		roadhogSpecificStats theseroadhogStats;
+		roadhogAvgStats theseroadhogAvgStats;
+
+	public:
+		const std::string getName() { return "Roadhog"; }
+		roadhogStats() { internalSetup(false, true, true); }
+		const roadhogSpecificStats getSpecific()  const { return this->theseroadhogStats; }
+		const roadhogAvgStats	     getAvgStats()  const { return this->theseroadhogAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const roadhogStatInterface* statInterface = new roadhogStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Enemies Hooked - Most in Game")
+						this->theseroadhogStats.enemiesHookedMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Enemies Hooked")
+						this->theseroadhogStats.enemiesHooked = statTable[index].second.second;
+					if (statTable[index].second.first == "Hooks Attempted")
+						this->theseroadhogStats.hooksAttempted = statTable[index].second.second;
+					if (statTable[index].second.first == "Whole Hog Kills - Most in Game")
+						this->theseroadhogStats.wholeHogKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Whole Hog Kills")
+						this->theseroadhogStats.wholeHogKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Hook Accuracy - Best in Game")
+						this->theseroadhogStats.hookAccBestInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing")
+						this->theseroadhogStats.selfHealing = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing - Most in Game")
+						this->theseroadhogStats.selfHealingMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Hook Accuracy")
+						this->theseroadhogStats.hookAcc = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->theseroadhogAvgStats.enemiesHookedPerTen = this->theseroadhogStats.enemiesHooked / (float)timePlayed;
+			this->theseroadhogAvgStats.hooksAttemptedPerTen = this->theseroadhogStats.hooksAttempted / (float)timePlayed;
+			this->theseroadhogAvgStats.selfHealingPerTen = this->theseroadhogStats.selfHealing / (float)timePlayed;
+			this->theseroadhogAvgStats.wholeHogKillsPerTen = this->theseroadhogStats.wholeHogKills / (float)timePlayed;
+
+			this->theseroadhogAvgStats.enemiesHookedAvg = this->theseroadhogStats.enemiesHooked / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseroadhogAvgStats.hooksAttemptedAvg = this->theseroadhogStats.hooksAttempted / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseroadhogAvgStats.selfHealingAvg = this->theseroadhogStats.selfHealing / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseroadhogAvgStats.wholeHogKillsAvg = this->theseroadhogStats.wholeHogKills / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new roadhogStatInterface(*this);
+		}
+	};
+
+	class winstonStats : public heroStats {
+
+	private:
+		struct winstonSpecificStats {
+			int playersKnockedBack;
+			int playersKnockedBackMostInGame;
+			int meleeKills;
+			int meleeKillsMostInGame;
+			int jumpPackKills;
+			int jumpPackKillsMostInGame;
+			int primalRageKills;
+			int primalRageKillsMostInGame;
+		};
+
+		struct winstonAvgStats {
+			float playersKnockedBackAvg;
+			float playersKnockedBackPerTen;
+			float meleeKillsAvg;
+			float meleeKillsPerTen;
+			float jumpPackKillsAvg;
+			float jumpPackKillsPerTen;
+			float primalRageKillsAvg;
+			float primalRageKillsPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct winstonStatInterface {
+			winstonSpecificStats specificStats;
+			winstonAvgStats avgStats;
+			baseStatI baseStats;
+			winstonStatInterface(winstonStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		winstonSpecificStats thesewinstonStats;
+		winstonAvgStats thesewinstonAvgStats;
+
+	public:
+		const std::string getName() { return "Winston"; }
+		winstonStats() { internalSetup(false, false, true); }
+		const winstonSpecificStats getSpecific()  const { return this->thesewinstonStats; }
+		const winstonAvgStats	     getAvgStats()  const { return this->thesewinstonAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const winstonStatInterface* statInterface = new winstonStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Players Knocked Back")
+						this->thesewinstonStats.playersKnockedBack = statTable[index].second.second;
+					if (statTable[index].second.first == "Players Knocked Back - Most in Game")
+						this->thesewinstonStats.playersKnockedBackMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Melee Kills")
+						this->thesewinstonStats.meleeKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Melee Kills - Most in Game")
+						this->thesewinstonStats.meleeKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Jump Pack Kills")
+						this->thesewinstonStats.jumpPackKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Jump Pack Kills - Most in Game")
+						this->thesewinstonStats.jumpPackKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Primal Rage Kills")
+						this->thesewinstonStats.primalRageKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Primal Rage Kills - Most in Game")
+						this->thesewinstonStats.primalRageKillsMostInGame = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->thesewinstonAvgStats.jumpPackKillsPerTen = this->thesewinstonStats.jumpPackKills / (float)timePlayed;
+			this->thesewinstonAvgStats.meleeKillsPerTen = this->thesewinstonStats.meleeKills / (float)timePlayed;
+			this->thesewinstonAvgStats.playersKnockedBackPerTen = this->thesewinstonStats.playersKnockedBack / (float)timePlayed;
+			this->thesewinstonAvgStats.primalRageKillsPerTen = this->thesewinstonStats.primalRageKills / (float)timePlayed;
+
+			this->thesewinstonAvgStats.jumpPackKillsAvg = this->thesewinstonStats.jumpPackKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesewinstonAvgStats.meleeKillsAvg = this->thesewinstonStats.meleeKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesewinstonAvgStats.playersKnockedBackAvg = this->thesewinstonStats.playersKnockedBack / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesewinstonAvgStats.primalRageKillsAvg = this->thesewinstonStats.primalRageKills / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new winstonStatInterface(*this);
+		}
+	};
+
+	class zaryaStats : public heroStats {
+
+	private:
+		struct zaryaSpecificStats {
+			int gravitonSurgeKills;
+			int gravitonSurgeKillsMostInGame;
+			int highEnergyKills;
+			int highEnergyKillsMostInGame;
+			int projectedBarriersApplied;
+			int projectedBarriersAppliedMostInGame;
+			float avgEnergy;
+		};
+
+		struct zaryaAvgStats {
+			float gravitonKillsAvg;
+			float gravitonKillsPerTen;
+			float highEnergyKillsAvg;
+			float highEnergyKillsPerTen;
+			float projectedBarriersAppliedAvg;
+			float projectedBarriersAppliedPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct zaryaStatInterface {
+			zaryaSpecificStats specificStats;
+			zaryaAvgStats avgStats;
+			baseStatI baseStats;
+			zaryaStatInterface(zaryaStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		zaryaSpecificStats thesezaryaStats;
+		zaryaAvgStats thesezaryaAvgStats;
+
+	public:
+		const std::string getName() { return "Zarya"; }
+		zaryaStats() { internalSetup(false, false, true); }
+		const zaryaSpecificStats getSpecific()  const { return this->thesezaryaStats; }
+		const zaryaAvgStats	     getAvgStats()  const { return this->thesezaryaAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const zaryaStatInterface* statInterface = new zaryaStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Graviton Surge Kills")
+						this->thesezaryaStats.gravitonSurgeKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Graviton Surge Kills - Most in Game")
+						this->thesezaryaStats.gravitonSurgeKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "High Energy Kills - Most in Game")
+						this->thesezaryaStats.highEnergyKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "High Energy Kills")
+						this->thesezaryaStats.highEnergyKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Projected Barriers Applied")
+						this->thesezaryaStats.projectedBarriersApplied = statTable[index].second.second;
+					if (statTable[index].second.first == "Projected Barriers Applied - Most in Game")
+						this->thesezaryaStats.projectedBarriersAppliedMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Average Energy")
+						this->thesezaryaStats.avgEnergy = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->thesezaryaAvgStats.gravitonKillsPerTen = this->thesezaryaStats.gravitonSurgeKills / (float)timePlayed;
+			this->thesezaryaAvgStats.highEnergyKillsPerTen = this->thesezaryaStats.highEnergyKills / (float)timePlayed;
+			this->thesezaryaAvgStats.projectedBarriersAppliedPerTen = this->thesezaryaStats.projectedBarriersApplied / (float)timePlayed;
+
+			this->thesezaryaAvgStats.gravitonKillsAvg = this->thesezaryaStats.gravitonSurgeKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesezaryaAvgStats.highEnergyKillsAvg = this->thesezaryaStats.highEnergyKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesezaryaAvgStats.projectedBarriersAppliedAvg = this->thesezaryaStats.projectedBarriersApplied / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new zaryaStatInterface(*this); 
+		}
+	};
+
+	class anaStats : public heroStats {
+
+	private:
+		struct anaSpecificStats {
+			int scopedAccBestInGame;
+			int selfHealing;
+			int selfHealingMostInGame;
+			int enemiesSlept;
+			int nanoBoostsApplied;
+			int nanoBoostAssists;
+			int enemiesSleptMostInGame;
+			int nanoBoostAssistsMostInGame;
+			int nanoBoostsAppliedMostInGame;
+			int bioticGrenadeKills;
+			int scopedAcc;
+		};
+
+		struct anaAvgStats {
+			float selfHealingAvg;
+			float selfHealingPerTen;
+			float enemiesSleptAvg;
+			float enemiesSleptPerTen;
+			float nanoBoostsAppliedAvg;
+			float nanoBoostsAppliedPerTen;
+			float nanoBoostAssistsAvg;
+			float nanoBoostAssistsPerTen;
+			float bioticGrenadeKillsAvg;
+			float bioticGrenadeKillsPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct anaStatInterface {
+			anaSpecificStats specificStats;
+			anaAvgStats avgStats;
+			baseStatI baseStats;
+			anaStatInterface(anaStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		anaSpecificStats theseanaStats;
+		anaAvgStats theseanaAvgStats;
+
+	public:
+		const std::string getName() { return "Ana"; }
+		anaStats() { internalSetup(true, false, false); }
+		const anaSpecificStats getSpecific()  const { return this->theseanaStats; }
+		const anaAvgStats	     getAvgStats()  const { return this->theseanaAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const anaStatInterface* statInterface = new anaStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Scoped Accuracy - Best in Game")
+						this->theseanaStats.scopedAccBestInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing")
+						this->theseanaStats.selfHealing = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing - Most in Game")
+						this->theseanaStats.selfHealingMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Enemies Slept")
+						this->theseanaStats.enemiesSlept = statTable[index].second.second;
+					if (statTable[index].second.first == "Nano Boosts Applied")
+						this->theseanaStats.nanoBoostsApplied = statTable[index].second.second;
+					if (statTable[index].second.first == "Nano Boost Assists")
+						this->theseanaStats.nanoBoostAssists = statTable[index].second.second;
+					if (statTable[index].second.first == "Enemies Slept - Most in Game")
+						this->theseanaStats.enemiesSleptMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Nano Boost Assists - Most in Game")
+						this->theseanaStats.nanoBoostAssistsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Nano {count, plural, one {Boost} other {Boosts}} Applied - Most in Game")
+						this->theseanaStats.nanoBoostsAppliedMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Biotic Grenade Kills")
+						this->theseanaStats.bioticGrenadeKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Scoped Accuracy")
+						this->theseanaStats.scopedAcc = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->theseanaAvgStats.selfHealingPerTen = this->theseanaStats.selfHealing / (float)timePlayed;
+			this->theseanaAvgStats.bioticGrenadeKillsPerTen = this->theseanaStats.bioticGrenadeKills / (float)timePlayed;
+			this->theseanaAvgStats.enemiesSleptPerTen = this->theseanaStats.enemiesSlept / (float)timePlayed;
+			this->theseanaAvgStats.nanoBoostAssistsPerTen = this->theseanaStats.nanoBoostAssists / (float)timePlayed;
+			this->theseanaAvgStats.nanoBoostsAppliedPerTen = this->theseanaStats.nanoBoostsApplied / (float)timePlayed;
+
+			this->theseanaAvgStats.selfHealingAvg = this->theseanaStats.selfHealing / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseanaAvgStats.bioticGrenadeKillsAvg = this->theseanaStats.bioticGrenadeKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseanaAvgStats.enemiesSleptAvg = this->theseanaStats.enemiesSlept / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseanaAvgStats.nanoBoostAssistsAvg = this->theseanaStats.nanoBoostAssists / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theseanaAvgStats.nanoBoostsAppliedAvg = this->theseanaStats.nanoBoostsApplied / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new anaStatInterface(*this);
+		}
+	};
+
+	class lucioStats : public heroStats {
+
+	private:
+		struct lucioSpecificStats {
+			int soundBarriersProvided;
+			int soundBarriersProvidedMostInGame;
+			int selfHealing;
+			int selfHealingMostInGame;
+		};
+
+		struct lucioAvgStats {
+			float soundBarriersProvidedAvg;
+			float soundBarriersProvidedPerTen;
+			float selfHealingAvg;
+			float selfHealingPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct lucioStatInterface {
+			lucioSpecificStats specificStats;
+			lucioAvgStats avgStats;
+			baseStatI baseStats;
+			lucioStatInterface(lucioStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		lucioSpecificStats theselucioStats;
+		lucioAvgStats theselucioAvgStats;
+
+	public:
+		const std::string getName() { return "Lúcio"; }
+		lucioStats() { internalSetup(true, true, false); }
+		const lucioSpecificStats getSpecific()  const { return this->theselucioStats; }
+		const lucioAvgStats	     getAvgStats()  const { return this->theselucioAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const lucioStatInterface* statInterface = new lucioStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Sound Barriers Provided")
+						this->theselucioStats.soundBarriersProvided = statTable[index].second.second;
+					if (statTable[index].second.first == "Sound Barriers Provided - Most in Game")
+						this->theselucioStats.soundBarriersProvidedMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing")
+						this->theselucioStats.selfHealing = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing - Most in Game")
+						this->theselucioStats.selfHealingMostInGame = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->theselucioAvgStats.selfHealingPerTen = this->theselucioStats.selfHealing / (float)timePlayed;
+			this->theselucioAvgStats.soundBarriersProvidedPerTen = this->theselucioStats.soundBarriersProvided / (float)timePlayed;
+
+			this->theselucioAvgStats.selfHealingAvg = this->theselucioStats.selfHealing / (float)this->baseStatInterface->game.gamesPlayed;
+			this->theselucioAvgStats.soundBarriersProvidedAvg = this->theselucioStats.soundBarriersProvided / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new lucioStatInterface(*this);
+		}
+	};
+
+	class mercyStats : public heroStats {
+
+	private:
+		struct mercySpecificStats {
+			int blasterKills;
+			int blasterKillsMostInGame;
+			int resurrects;
+			int resurrectsMostInGame;
+			int selfHealing;
+			int selfHealingMostInGame;
+			int damageAmped;
+			int damageAmpedMostInGame;
+
+		};
+
+		struct mercyAvgStats {
+			float blasterKillsAvg;
+			float blasterKillsPerTen;
+			float resurrectsAvg;
+			float resurrectsPerTen;
+			float selfHealingAvg;
+			float selfHealingPerTen;
+			float damageAmpedAvg;
+			float damageAmpedPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct mercyStatInterface {
+			mercySpecificStats specificStats;
+			mercyAvgStats avgStats;
+			baseStatI baseStats;
+			mercyStatInterface(mercyStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		mercySpecificStats thesemercyStats;
+		mercyAvgStats thesemercyAvgStats;
+
+	public:
+		const std::string getName() { return "Mercy"; }
+		mercyStats() { internalSetup(true, true, false); }
+		const mercySpecificStats getSpecific()  const { return this->thesemercyStats; }
+		const mercyAvgStats	     getAvgStats()  const { return this->thesemercyAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const mercyStatInterface* statInterface = new mercyStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Blaster Kills")
+						this->thesemercyStats.blasterKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Blaster Kills - Most in Game")
+						this->thesemercyStats.blasterKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Players Resurrected")
+						this->thesemercyStats.resurrects = statTable[index].second.second;
+					if (statTable[index].second.first == "Players Resurrected - Most in Game")
+						this->thesemercyStats.resurrectsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing")
+						this->thesemercyStats.selfHealing = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing - Most in Game")
+						this->thesemercyStats.selfHealingMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Damage Amplified")
+						this->thesemercyStats.damageAmped = statTable[index].second.second;
+					if (statTable[index].second.first == "Damage Amplified - Most in Game")
+						this->thesemercyStats.damageAmpedMostInGame = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->thesemercyAvgStats.selfHealingPerTen = this->thesemercyStats.selfHealing / (float)timePlayed;
+			this->thesemercyAvgStats.blasterKillsPerTen = this->thesemercyStats.blasterKills / (float)timePlayed;
+			this->thesemercyAvgStats.resurrectsPerTen = this->thesemercyStats.resurrects / (float)timePlayed;
+			this->thesemercyAvgStats.damageAmpedPerTen = this->thesemercyStats.damageAmped / (float)timePlayed;
+
+			this->thesemercyAvgStats.selfHealingAvg = this->thesemercyStats.selfHealing / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesemercyAvgStats.blasterKillsAvg = this->thesemercyStats.blasterKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesemercyAvgStats.damageAmpedAvg = this->thesemercyStats.damageAmped / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesemercyAvgStats.resurrectsAvg = this->thesemercyStats.resurrects / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new mercyStatInterface(*this);
+		}
+	};
+
+	class moiraStats : public heroStats {
+
+	private:
+		struct moiraSpecificStats {
+			int blasterKills;
+			int blasterKillsMostInGame;
+			int resurrects;
+			int resurrectsMostInGame;
+			int selfHealing;
+			int selfHealingMostInGame;
+			int damageAmped;
+			int damageAmpedMostInGame;
+
+		};
+
+		struct moiraAvgStats {
+			float blasterKillsAvg;
+			float blasterKillsPerTen;
+			float resurrectsAvg;
+			float resurrectsPerTen;
+			float selfHealingAvg;
+			float selfHealingPerTen;
+			float damageAmpedAvg;
+			float damageAmpedPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct moiraStatInterface {
+			moiraSpecificStats specificStats;
+			moiraAvgStats avgStats;
+			baseStatI baseStats;
+			moiraStatInterface(moiraStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		moiraSpecificStats thesemoiraStats;
+		moiraAvgStats thesemoiraAvgStats;
+
+	public:
+		const std::string getName() { return "Moira"; }
+		moiraStats() { internalSetup(true, true, false); }
+		const moiraSpecificStats getSpecific()  const { return this->thesemoiraStats; }
+		const moiraAvgStats	     getAvgStats()  const { return this->thesemoiraAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const moiraStatInterface* statInterface = new moiraStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Blaster Kills")
+						this->thesemoiraStats.blasterKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Blaster Kills - Most in Game")
+						this->thesemoiraStats.blasterKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Players Resurrected")
+						this->thesemoiraStats.resurrects = statTable[index].second.second;
+					if (statTable[index].second.first == "Players Resurrected - Most in Game")
+						this->thesemoiraStats.resurrectsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing")
+						this->thesemoiraStats.selfHealing = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing - Most in Game")
+						this->thesemoiraStats.selfHealingMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Damage Amplified")
+						this->thesemoiraStats.damageAmped = statTable[index].second.second;
+					if (statTable[index].second.first == "Damage Amplified - Most in Game")
+						this->thesemoiraStats.damageAmpedMostInGame = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->thesemoiraAvgStats.selfHealingPerTen = this->thesemoiraStats.selfHealing / (float)timePlayed;
+			this->thesemoiraAvgStats.blasterKillsPerTen = this->thesemoiraStats.blasterKills / (float)timePlayed;
+			this->thesemoiraAvgStats.resurrectsPerTen = this->thesemoiraStats.resurrects / (float)timePlayed;
+			this->thesemoiraAvgStats.damageAmpedPerTen = this->thesemoiraStats.damageAmped / (float)timePlayed;
+
+			this->thesemoiraAvgStats.selfHealingAvg = this->thesemoiraStats.selfHealing / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesemoiraAvgStats.blasterKillsAvg = this->thesemoiraStats.blasterKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesemoiraAvgStats.damageAmpedAvg = this->thesemoiraStats.damageAmped / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesemoiraAvgStats.resurrectsAvg = this->thesemoiraStats.resurrects / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new moiraStatInterface(*this);
 		}
 	};
