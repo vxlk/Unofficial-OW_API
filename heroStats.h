@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <vector>
 //#include "curl_Get.h"
-///TODO: CHECK FOR ENVIORNMENTAL KILLS AND OTHER STUFF THAT IS HERO SPECIFIC BUT NOT IN HERO SPECIFIC
+///TODO: SYM'S ULT UPTIME IN WEIRD FORMAT - FIGURE OUT WHAT IT MEANS
 /*nifty c++ trick to turn a var name into a string*/
 #define STRINGIFY(name) stringify(#name), (name))
 #define NUM_CATEGORIES 12
@@ -2475,26 +2475,21 @@ void buildHeroMap() {
 
 	private:
 		struct moiraSpecificStats {
-			int blasterKills;
-			int blasterKillsMostInGame;
-			int resurrects;
-			int resurrectsMostInGame;
 			int selfHealing;
 			int selfHealingMostInGame;
-			int damageAmped;
-			int damageAmpedMostInGame;
-
+			int coalescenceKills;
+			int coalescenceKillsMostInGame;
+			int coalescenceHealing;
+			int coalescenceHealingMostInGame;
 		};
 
 		struct moiraAvgStats {
-			float blasterKillsAvg;
-			float blasterKillsPerTen;
-			float resurrectsAvg;
-			float resurrectsPerTen;
 			float selfHealingAvg;
 			float selfHealingPerTen;
-			float damageAmpedAvg;
-			float damageAmpedPerTen;
+			float coalescenceKillsAvg;
+			float coalescenceKillsPerTen;
+			float coalescenceHealingAvg;
+			float coalescenceHealingPerTen;
 		};
 
 		/*the values the implementer can see*/
@@ -2515,7 +2510,7 @@ void buildHeroMap() {
 
 	public:
 		const std::string getName() { return "Moira"; }
-		moiraStats() { internalSetup(true, true, false); }
+		moiraStats() { internalSetup(true, false, false); }
 		const moiraSpecificStats getSpecific()  const { return this->thesemoiraStats; }
 		const moiraAvgStats	     getAvgStats()  const { return this->thesemoiraAvgStats; }
 		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
@@ -2530,22 +2525,19 @@ void buildHeroMap() {
 			//update specific stats
 			for (int index = 0; index < statTable.size(); ++index) {
 				if (statTable[index].first.first == this->getName()) {
-					if (statTable[index].second.first == "Blaster Kills")
-						this->thesemoiraStats.blasterKills = statTable[index].second.second;
-					if (statTable[index].second.first == "Blaster Kills - Most in Game")
-						this->thesemoiraStats.blasterKillsMostInGame = statTable[index].second.second;
-					if (statTable[index].second.first == "Players Resurrected")
-						this->thesemoiraStats.resurrects = statTable[index].second.second;
-					if (statTable[index].second.first == "Players Resurrected - Most in Game")
-						this->thesemoiraStats.resurrectsMostInGame = statTable[index].second.second;
 					if (statTable[index].second.first == "Self Healing")
 						this->thesemoiraStats.selfHealing = statTable[index].second.second;
 					if (statTable[index].second.first == "Self Healing - Most in Game")
 						this->thesemoiraStats.selfHealingMostInGame = statTable[index].second.second;
-					if (statTable[index].second.first == "Damage Amplified")
-						this->thesemoiraStats.damageAmped = statTable[index].second.second;
-					if (statTable[index].second.first == "Damage Amplified - Most in Game")
-						this->thesemoiraStats.damageAmpedMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Coalescence Kills")
+						this->thesemoiraStats.coalescenceKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Coalescence Kills - Most in Game")
+						this->thesemoiraStats.coalescenceKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Coalescence Healing")
+						this->thesemoiraStats.coalescenceHealing = statTable[index].second.second;
+					if (statTable[index].second.first == "Coalescence Healing - Most in Game")
+						this->thesemoiraStats.coalescenceHealingMostInGame = statTable[index].second.second;
+					//damage amplified is ignored
 				}
 			}
 
@@ -2557,15 +2549,181 @@ void buildHeroMap() {
 			timePlayed /= 10;
 
 			this->thesemoiraAvgStats.selfHealingPerTen = this->thesemoiraStats.selfHealing / (float)timePlayed;
-			this->thesemoiraAvgStats.blasterKillsPerTen = this->thesemoiraStats.blasterKills / (float)timePlayed;
-			this->thesemoiraAvgStats.resurrectsPerTen = this->thesemoiraStats.resurrects / (float)timePlayed;
-			this->thesemoiraAvgStats.damageAmpedPerTen = this->thesemoiraStats.damageAmped / (float)timePlayed;
+			this->thesemoiraAvgStats.coalescenceHealingPerTen = this->thesemoiraStats.coalescenceHealing / (float)timePlayed;
+			this->thesemoiraAvgStats.coalescenceKillsPerTen = this->thesemoiraStats.coalescenceKills / (float)timePlayed;
 
 			this->thesemoiraAvgStats.selfHealingAvg = this->thesemoiraStats.selfHealing / (float)this->baseStatInterface->game.gamesPlayed;
-			this->thesemoiraAvgStats.blasterKillsAvg = this->thesemoiraStats.blasterKills / (float)this->baseStatInterface->game.gamesPlayed;
-			this->thesemoiraAvgStats.damageAmpedAvg = this->thesemoiraStats.damageAmped / (float)this->baseStatInterface->game.gamesPlayed;
-			this->thesemoiraAvgStats.resurrectsAvg = this->thesemoiraStats.resurrects / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesemoiraAvgStats.coalescenceHealingAvg = this->thesemoiraStats.coalescenceHealing / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesemoiraAvgStats.coalescenceKillsAvg = this->thesemoiraStats.coalescenceKills / (float)this->baseStatInterface->game.gamesPlayed;
 
 			this->statInterface = new moiraStatInterface(*this);
+		}
+	};
+
+	class symmetraStats : public heroStats {
+
+	private:
+		struct symmetraSpecificStats {
+			int sentryTurretKills;
+			int sentryTurretKillsMostInGame;
+			int playersTeleported;
+			int playersTeleportedMostInGame;
+			int teleporterUptime;
+			int shieldGenUptime;
+			//are these in seconds or..?
+		};
+
+		struct symmetraAvgStats {
+			float sentryTurretKillsAvg;
+			float sentryTurretKillsPerTen;
+			float playersTeleportedAvg;
+			float playersTeleportedPerTen;
+			float teleporterUptimePerGame; //same as avg
+			float shieldGenUptimePerGame; //same as avg
+		};
+
+		/*the values the implementer can see*/
+		struct symmetraStatInterface {
+			symmetraSpecificStats specificStats;
+			symmetraAvgStats avgStats;
+			baseStatI baseStats;
+			symmetraStatInterface(symmetraStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		symmetraSpecificStats thesesymmetraStats;
+		symmetraAvgStats thesesymmetraAvgStats;
+
+	public:
+		const std::string getName() { return "Symmetra"; }
+		symmetraStats() { internalSetup(false, false, true); }
+		const symmetraSpecificStats getSpecific()  const { return this->thesesymmetraStats; }
+		const symmetraAvgStats	     getAvgStats()  const { return this->thesesymmetraAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const symmetraStatInterface* statInterface = new symmetraStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Sentry Turret Kills")
+						this->thesesymmetraStats.sentryTurretKills = statTable[index].second.second;
+					if (statTable[index].second.first == "Sentry Turret Kills - Most in Game")
+						this->thesesymmetraStats.sentryTurretKillsMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Players Teleported")
+						this->thesesymmetraStats.playersTeleported = statTable[index].second.second;
+					if (statTable[index].second.first == "Players Teleported - Most in Game")
+						this->thesesymmetraStats.playersTeleportedMostInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Teleporter Uptime")
+						this->thesesymmetraStats.teleporterUptime = statTable[index].second.second;
+					if (statTable[index].second.first == "Shield Generator Uptime")
+						this->thesesymmetraStats.shieldGenUptime = statTable[index].second.second;
+					//damage amplified is ignored
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->thesesymmetraAvgStats.playersTeleportedPerTen = this->thesesymmetraStats.playersTeleported / (float)timePlayed;
+			this->thesesymmetraAvgStats.sentryTurretKillsPerTen = this->thesesymmetraStats.sentryTurretKills / (float)timePlayed;
+
+			this->thesesymmetraAvgStats.shieldGenUptimePerGame = this->thesesymmetraStats.shieldGenUptime / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesesymmetraAvgStats.teleporterUptimePerGame = this->thesesymmetraStats.teleporterUptime / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesesymmetraAvgStats.sentryTurretKillsAvg = this->thesesymmetraStats.sentryTurretKills / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesesymmetraAvgStats.playersTeleportedAvg = this->thesesymmetraStats.playersTeleported / (float)this->baseStatInterface->game.gamesPlayed;
+
+			this->statInterface = new symmetraStatInterface(*this);
+		}
+	};
+
+	class zenyattaStats : public heroStats {
+
+	private:
+		struct zenyattaSpecificStats {
+			int transcendenceHealing;
+			int transcendenceHealingBestInGame;
+			int selfHealing;
+			int selfHealingBestInGame;
+		};
+
+		struct zenyattaAvgStats {
+			float transcendenceHealingAvg;
+			float transcendenceHealingPerTen;
+			float selfHealingAvg;
+			float selfHealingPerTen;
+		};
+
+		/*the values the implementer can see*/
+		struct zenyattaStatInterface {
+			zenyattaSpecificStats specificStats;
+			zenyattaAvgStats avgStats;
+			baseStatI baseStats;
+			zenyattaStatInterface(zenyattaStats those) {
+				this->specificStats = those.getSpecific();
+				baseStats = baseStats.updateI(those.baseStatInterface);
+				this->avgStats = those.getAvgStats();
+			}
+		};
+
+		/*the values that can be changed*/
+		zenyattaSpecificStats thesezenyattaStats;
+		zenyattaAvgStats thesezenyattaAvgStats;
+
+	public:
+		const std::string getName() { return "Zenyatta"; }
+		zenyattaStats() { internalSetup(false, true, true); }
+		const zenyattaSpecificStats getSpecific()  const { return this->thesezenyattaStats; }
+		const zenyattaAvgStats	     getAvgStats()  const { return this->thesezenyattaAvgStats; }
+		const baseStatI*		 getBaseStats() const { return this->baseStatInterface; }
+
+		/*implementer of the function gets access to a const'd version of the stats*/
+		const zenyattaStatInterface* statInterface = new zenyattaStatInterface(*this);
+
+		void updateStats() override {
+
+			this->updateBaseStats(this->getName());
+
+			//update specific stats
+			for (int index = 0; index < statTable.size(); ++index) {
+				if (statTable[index].first.first == this->getName()) {
+					if (statTable[index].second.first == "Transcendence Healing - Best")
+						this->thesezenyattaStats.transcendenceHealingBestInGame = statTable[index].second.second;
+					if (statTable[index].second.first == "Transcendence Healing")
+						this->thesezenyattaStats.transcendenceHealing = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing")
+						this->thesezenyattaStats.selfHealing = statTable[index].second.second;
+					if (statTable[index].second.first == "Self Healing - Most in Game")
+						this->thesezenyattaStats.selfHealingBestInGame = statTable[index].second.second;
+				}
+			}
+
+			//cast to minutes
+			float timePlayed = this->baseStatInterface->game.timePlayed * 60;
+			//no need to process
+			if (timePlayed == 0.0) return;
+			//cast to ten minute intervals
+			timePlayed /= 10;
+
+			this->thesezenyattaAvgStats.selfHealingPerTen = this->thesezenyattaStats.selfHealing / (float)timePlayed;
+			this->thesezenyattaAvgStats.transcendenceHealingPerTen = this->thesezenyattaStats.transcendenceHealing / (float)timePlayed;
+
+			this->thesezenyattaAvgStats.selfHealingAvg = this->thesezenyattaStats.selfHealing / (float)this->baseStatInterface->game.gamesPlayed;
+			this->thesezenyattaAvgStats.transcendenceHealingAvg = this->thesezenyattaStats.transcendenceHealing / (float)this->baseStatInterface->game.gamesPlayed;
+			
+			this->statInterface = new zenyattaStatInterface(*this);
 		}
 	};
