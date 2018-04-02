@@ -332,7 +332,12 @@ void getHeroStats(const std::string& buffer) {
 		}
 
 		if (endParse == buffer.npos) {
-			break; //you are done
+			//at the last element of the stat list, we need to look for a new delimiter, since
+			//before we were using the next hero's data group id
+			//the achievement section always comes after the stat graph section
+			endParse = buffer.find("section id=\"achievements-section\"", startParse + 1);
+			if (endParse == buffer.npos)
+				break; //you are done
 		}
 
 		start = startParse;
@@ -543,16 +548,17 @@ int main(void)
 	
 	//statsToHeroContainer();
 
-	
+	/*
 	for (int i = 0; i < NUM_HEROES + 1; ++i) {
 		std::cout << heroId[i].first << " " << heroId[i].second << "\n";
 		if (heroId[i].first == "Moira")
 			std::cout << "you win";
 	}
+	*/
 	std::string temp;
 
 	for (int i = 0; i < statTable.size(); ++i) {
-		//if (statTable[i].first.first == "Moira")
+		if (statTable[i].first.first == "Moira")
 			out << statTable[i].first.first << " " << statTable[i].first.second << " " << statTable[i].second.first << " " << statTable[i].second.second << "\n";
 	}
 	std::cout << test->getName() << "\n";
